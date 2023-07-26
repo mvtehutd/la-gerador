@@ -107,7 +107,7 @@ cmdLeia: 'leia' '(' '^'? identificador (',' '^'? identificador)* ')';
 
 cmdEscreva: 'escreva' '(' expressao (',' expressao)* ')';
 
-cmdSe: 'se' expressao 'entao' cmd* ('senao' cmd*)* 'fim_se';
+cmdSe: 'se' expressao 'entao' comandose += cmd* ('senao' comandosenao += cmd*)* 'fim_se';
 
 cmdCaso: 'caso' exp_aritmetica 'seja' selecao ('senao' cmd*)? 'fim_caso';
 

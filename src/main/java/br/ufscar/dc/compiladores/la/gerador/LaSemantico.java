@@ -17,7 +17,6 @@ import br.ufscar.dc.compiladores.parser.LaParser.CmdContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CorpoContext;
 import br.ufscar.dc.compiladores.parser.LaParser.Declaracao_globalContext;
 import br.ufscar.dc.compiladores.parser.LaParser.Declaracao_localContext;
-import br.ufscar.dc.compiladores.parser.LaParser.Exp_aritmeticaContext;
 import br.ufscar.dc.compiladores.parser.LaParser.IdentificadorContext;
 import br.ufscar.dc.compiladores.parser.LaParser.ParametroContext;
 import br.ufscar.dc.compiladores.parser.LaParser.Parcela_unarioContext;
@@ -174,9 +173,7 @@ public class LaSemantico extends LaBaseVisitor<Void> {
             // adiciona na tabela de símbolos
             for (IdentificadorContext variavelIdent : variavelContext.identificador()) {
                 String variavel = variavelIdent.getText();
-                for (Exp_aritmeticaContext tamanhoDoArray : variavelIdent.dimensao().exp_aritmetica()) {
-                    variavel = variavelIdent.IDENT(0).getText();
-                }
+                variavel = variavelIdent.IDENT(0).getText();
                 insereVariavelNaTabelaSeNaoExistir(tabelaAdicional, variavel, tipovar, tipoPonteiro,
                         tabelaDoRegistro, variavelIdent.IDENT(0).getSymbol());
             }

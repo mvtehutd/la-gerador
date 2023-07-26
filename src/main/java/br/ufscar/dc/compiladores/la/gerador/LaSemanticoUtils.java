@@ -272,16 +272,17 @@ public class LaSemanticoUtils {
 
     public static String retornaTipoLaDoIdentificador( TipoLa tipo) {
         // verifica se é algum dos tipos padrão
+        System.out.println(tipo);
         switch (tipo) {
             case
                     INTEIRO:
                 return "%d";
             case
                     LITERAL:
-                return "c";
+                return "%s";
             case
                     REAL:
-                return "f";
+                return "%f";
 
             default:
                 return "";

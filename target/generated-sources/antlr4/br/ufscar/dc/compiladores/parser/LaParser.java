@@ -1728,6 +1728,9 @@ public class LaParser extends Parser {
 
 	@SuppressWarnings("CheckReturnValue")
 	public static class CmdSeContext extends ParserRuleContext {
+		public CmdContext cmd;
+		public List<CmdContext> comandose = new ArrayList<CmdContext>();
+		public List<CmdContext> comandosenao = new ArrayList<CmdContext>();
 		public ExpressaoContext expressao() {
 			return getRuleContext(ExpressaoContext.class,0);
 		}
@@ -1776,7 +1779,8 @@ public class LaParser extends Parser {
 				{
 				{
 				setState(310);
-				cmd();
+				((CmdSeContext)_localctx).cmd = cmd();
+				((CmdSeContext)_localctx).comandose.add(((CmdSeContext)_localctx).cmd);
 				}
 				}
 				setState(315);
@@ -1798,7 +1802,8 @@ public class LaParser extends Parser {
 					{
 					{
 					setState(317);
-					cmd();
+					((CmdSeContext)_localctx).cmd = cmd();
+					((CmdSeContext)_localctx).comandosenao.add(((CmdSeContext)_localctx).cmd);
 					}
 					}
 					setState(322);
