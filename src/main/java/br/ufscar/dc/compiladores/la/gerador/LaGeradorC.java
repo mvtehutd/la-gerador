@@ -8,7 +8,9 @@ import br.ufscar.dc.compiladores.parser.LaParser;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdAtribuicaoContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdCasoContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdContext;
+import br.ufscar.dc.compiladores.parser.LaParser.CmdEnquantoContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdEscrevaContext;
+import br.ufscar.dc.compiladores.parser.LaParser.CmdFacaContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdLeiaContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdParaContext;
 import br.ufscar.dc.compiladores.parser.LaParser.CmdSeContext;
@@ -75,6 +77,12 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         }
         if(ctx.cmdPara() != null){
             visitCmdPara(ctx.cmdPara());
+        }
+        if(ctx.cmdEnquanto() != null){
+            visitCmdEnquanto(ctx.cmdEnquanto());
+        }
+        if(ctx.cmdFaca() != null){
+            visitCmdFaca(ctx.cmdFaca());
         }
         return null;
     }
@@ -188,17 +196,25 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
 
     @Override
     public Void visitExp_relacional(Exp_relacionalContext ctx) {
-        saida.append(ctx.exp_aritmetica(0).getText());
         Op_relacionalContext operadorRelacional = ctx.op_relacional();
-        if (operadorRelacional.getText().equals("<>")) {
-            saida.append("!=");
-        } else if (operadorRelacional.getText().equals("=")) {
-            saida.append("==");
-        } else if (operadorRelacional != null) {
-            saida.append(operadorRelacional.getText());
-        }
-        if (ctx.exp_aritmetica().size() > 1) {
-            saida.append(ctx.exp_aritmetica(1).getText());
+        System.out.println(ctx.getText());
+        if (operadorRelacional != null) {
+            saida.append(ctx.exp_aritmetica(0).getText());
+            if (operadorRelacional.getText().equals("<>")) {
+                saida.append("!=");
+            } else if (operadorRelacional.getText().equals("=")) {
+                saida.append("==");
+            } else {
+                saida.append(operadorRelacional.getText());
+            }
+            if (ctx.exp_aritmetica().size() > 1) {
+                saida.append(ctx.exp_aritmetica(1).getText());
+            }
+        }else{
+            saida.append("(");
+            visitExp_relacional(ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_unario().expressao(0)
+                        .termo_logico(0).fator_logico(0).parcela_logica().exp_relacional());
+            saida.append(")");
         }
         return null;
     }
@@ -258,6 +274,32 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                 saida.append("\t\tcase " + numero_intervaloContext.NUM_INT(0).getText() + ":\n");
             }
         }
+        return null;
+    }
+
+    @Override
+    public Void visitCmdEnquanto(CmdEnquantoContext ctx) {
+        saida.append("\twhile(");
+        visitExpressao(ctx.expressao());
+        saida.append("){\n");
+        for (CmdContext cmdContext : ctx.cmd()) {
+            saida.append("\t");
+            visitCmd(cmdContext);
+        }
+        saida.append("\t}\n");
+        return null;
+    }
+
+    @Override
+    public Void visitCmdFaca(CmdFacaContext ctx) {
+        saida.append("\tdo{\n");
+        for (CmdContext cmdContext : ctx.cmd()) {
+            saida.append("\t");
+            visitCmd(cmdContext);
+        }
+        saida.append("\t} while(");
+        visitExpressao(ctx.expressao());
+        saida.append(");\n");
         return null;
     }
 
