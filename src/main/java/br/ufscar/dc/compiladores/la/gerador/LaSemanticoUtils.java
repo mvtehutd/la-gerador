@@ -31,6 +31,7 @@ public class LaSemanticoUtils {
         // Percorre os termos lógicos e, se forem iguais retorna o tipo, senão retorna o
         // tipo inválido
         for (Termo_logicoContext ta : expressaoContext.termo_logico()) {
+            System.out.println("tl " + ta.getText());
             TabelaDeSimbolos.TipoLa aux = verificarTipo(tabela, ta);
             if (ret == null) {
                 ret = aux;

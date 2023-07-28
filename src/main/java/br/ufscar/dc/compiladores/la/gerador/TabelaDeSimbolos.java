@@ -12,7 +12,7 @@ public class TabelaDeSimbolos {
         REAL ("float"),
         LOGICO ("bool"),
         INVALIDO ("invalido"),
-        REGISTRO ("typedef struct");
+        REGISTRO ("struct");
 
         private String valor;
         private TipoLa(String valor){
