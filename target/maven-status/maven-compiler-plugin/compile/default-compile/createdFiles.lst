@@ -35,7 +35,6 @@ br\ufscar\dc\compiladores\parser\LaParser$Op_logico_2Context.class
 br\ufscar\dc\compiladores\parser\LaParser$Fator_logicoContext.class
 br\ufscar\dc\compiladores\parser\LaParser$Op3Context.class
 br\ufscar\dc\compiladores\parser\LaParser$Op1Context.class
-br\ufscar\dc\compiladores\parser\La.interp
 br\ufscar\dc\compiladores\parser\LaParser.class
 br\ufscar\dc\compiladores\parser\LaListener.class
 br\ufscar\dc\compiladores\parser\LaParser$CmdRetorneContext.class
@@ -62,6 +61,5 @@ br\ufscar\dc\compiladores\parser\LaParser$Exp_aritmeticaContext.class
 br\ufscar\dc\compiladores\parser\LaParser$Op_relacionalContext.class
 br\ufscar\dc\compiladores\parser\LaParser$CmdEnquantoContext.class
 br\ufscar\dc\compiladores\parser\LaParser$ConstantesContext.class
-br\ufscar\dc\compiladores\parser\LaLexer.interp
 br\ufscar\dc\compiladores\parser\LaParser$TermoContext.class
 br\ufscar\dc\compiladores\la\gerador\LaSemantico.class

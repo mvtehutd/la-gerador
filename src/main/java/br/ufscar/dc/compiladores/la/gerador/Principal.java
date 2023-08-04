@@ -21,7 +21,7 @@ public class Principal {
         ProgramaContext arvore = parser.programa();
         LaSemantico as = new LaSemantico();
         as.visitPrograma(arvore);
-        // Pega o segundo argumento da linha de comando que representa o CAMINHO PARA O ARQUIVO DE SAIDA DA ANALISE SEMÂNTICA
+        // Pega o segundo argumento da linha de comando que representa o CAMINHO PARA O ARQUIVO DE SAÍDA
         // E Cria um objeto para escrever no arquivo
         if(LaSemanticoUtils.errosSemanticos.isEmpty()) {
             LaGeradorC agc = new LaGeradorC();

@@ -44,6 +44,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         this.tabela = new TabelaDeSimbolos();
     }
 
+    // Coloca a estrutura básica do programa, como includes e main, além de chamar as demais verificações
     @Override
     public Void visitPrograma(LaParser.ProgramaContext ctx) {
         saida.append("#include <stdio.h>\n");
@@ -57,6 +58,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Corpo do programa (dentro da main) - manda visitar as declarações locais e os comandos
     @Override
     public Void visitCorpo(CorpoContext ctx) {
         ctx.declaracao_local().forEach(decl_local -> visitDeclaracao_local(decl_local));
@@ -64,6 +66,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Verifica e chama o comando correspondente
     @Override
     public Void visitCmd(CmdContext ctx) {
         if (ctx.cmdLeia() != null) {
@@ -99,6 +102,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Faz a Conversão do Comando Escreva
     @Override
     public Void visitCmdEscreva(CmdEscrevaContext ctx) {
         String nomeVariavel = "";
@@ -107,9 +111,10 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         for (ExpressaoContext expressaoContext : ctx.expressao()) {
             nomeVariavel = expressaoContext.getText();
 
+            // Imprimir String
             if (nomeVariavel.startsWith("\"")) {
                 stringParaImpressao += nomeVariavel.substring(1, nomeVariavel.length() - 1);
-            } else {
+            } else { // imprimir variáveis 
 
                 TipoLa tipoLaExpressao = LaSemanticoUtils.verificarTipo(tabela, expressaoContext);
 
@@ -125,34 +130,37 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Comando Leia
     @Override
     public Void visitCmdLeia(CmdLeiaContext ctx) {
         String nomeVariavel = ctx.identificador(0).getText();
         TipoLa tipoLaVariavel = tabela.verificar(nomeVariavel);
         String tipoVariavel = LaSemanticoUtils.retornaTipoLaDoIdentificador(tabela.verificar(nomeVariavel));
-        if (!tipoLaVariavel.equals(TipoLa.LITERAL)) {
+        if (!tipoLaVariavel.equals(TipoLa.LITERAL)) { // Se não for string, põe &
             nomeVariavel = "&" + nomeVariavel;
         }
         saida.append("\tscanf(\"" + tipoVariavel + "\", " + nomeVariavel + ");\n");
         return null;
     }
 
+    // Conversão Comando de Atribuição
     @Override
     public Void visitCmdAtribuicao(CmdAtribuicaoContext ctx) {
         String nomeVariavelAtribuicao = ctx.identificador().getText();
         String expressaoAtribuida = ctx.expressao().getText();
-        if (ctx.getText().startsWith("^")) {
+        if (ctx.getText().startsWith("^")) { // se for ponteiro
             nomeVariavelAtribuicao = "*" + nomeVariavelAtribuicao;
         }
-
+        // Se for string, usa o strcpy()
         if (LaSemanticoUtils.verificarTipo(tabela, ctx.expressao()).equals(TipoLa.LITERAL)) {
             saida.append("\tstrcpy(" + nomeVariavelAtribuicao + ", " + expressaoAtribuida + ");\n");
-        } else {
+        } else { // senão faz a atribuição normalmente com =
             saida.append("\t" + nomeVariavelAtribuicao + " = " + expressaoAtribuida + ";\n");
         }
         return null;
     }
 
+    // Conversão Comando Se
     @Override
     public Void visitCmdSe(CmdSeContext ctx) {
         saida.append("\tif(");
@@ -163,7 +171,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
             visitCmd(cmdSeContext);
         }
         saida.append("\t}\n");
-        if (ctx.comandosenao.size() > 0) {
+        if (ctx.comandosenao.size() > 0) { // se tem comando senão
             saida.append("\telse{\n");
             for (CmdContext cmdSenaoContext : ctx.comandosenao) {
                 saida.append("\t");
@@ -174,6 +182,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Expressão
     @Override
     public Void visitExpressao(ExpressaoContext ctx) {
         for (int i = 0; i < ctx.termo_logico().size(); i++) {
@@ -185,6 +194,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Termo Lógico
     @Override
     public Void visitTermo_logico(Termo_logicoContext ctx) {
         for (int i = 0; i < ctx.fator_logico().size(); i++) {
@@ -196,6 +206,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Fator Lógico
     @Override
     public Void visitFator_logico(Fator_logicoContext ctx) {
         Parcela_logicaContext parcelaLogica = ctx.parcela_logica();
@@ -215,11 +226,12 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Expressão Relacional
     @Override
     public Void visitExp_relacional(Exp_relacionalContext ctx) {
         Op_relacionalContext operadorRelacional = ctx.op_relacional();
 
-        if (operadorRelacional != null) {
+        if (operadorRelacional != null) { // se tem operador relacional (expressão simples)
             saida.append(ctx.exp_aritmetica(0).getText());
             if (operadorRelacional.getText().equals("<>")) {
                 saida.append("!=");
@@ -231,7 +243,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
             if (ctx.exp_aritmetica().size() > 1) {
                 saida.append(ctx.exp_aritmetica(1).getText());
             }
-        } else {
+        } else { // com expressão aritmética
             saida.append("(");
             if (ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_nao_unario() != null) {
                 saida.append(ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_nao_unario().getText());
@@ -244,6 +256,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Comando Caso
     @Override
     public Void visitCmdCaso(CmdCasoContext ctx) {
         saida.append("\tswitch(" + ctx.exp_aritmetica().getText() + "){\n");
@@ -259,6 +272,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Seleção
     @Override
     public Void visitSelecao(SelecaoContext ctx) {
         for (Item_selecaoContext item_selecaoContext : ctx.item_selecao()) {
@@ -273,21 +287,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
-    @Override
-    public Void visitCmdPara(CmdParaContext ctx) {
-        String variavel = ctx.IDENT().getText();
-        String inicio = ctx.exp_aritmetica(0).getText();
-        String fim = ctx.exp_aritmetica(1).getText();
-        saida.append(
-                "\tfor(" + variavel + " = " + inicio + "; " + variavel + " <= " + fim + "; " + variavel + "++){\n");
-        for (CmdContext cmdContext : ctx.cmd()) {
-            saida.append("\t");
-            visitCmd(cmdContext);
-        }
-        saida.append("\t}\n");
-        return null;
-    }
-
+    // Conversão Constantes do Comando Caso
     @Override
     public Void visitConstantes(ConstantesContext ctx) {
         for (Numero_intervaloContext numero_intervaloContext : ctx.numero_intervalo()) {
@@ -303,12 +303,16 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Comando Para
     @Override
-    public Void visitCmdEnquanto(CmdEnquantoContext ctx) {
-        saida.append("\twhile(");
-        visitExpressao(ctx.expressao());
-        saida.append("){\n");
-        for (CmdContext cmdContext : ctx.cmd()) {
+    public Void visitCmdPara(CmdParaContext ctx) {
+        String variavel = ctx.IDENT().getText();
+        String inicio = ctx.exp_aritmetica(0).getText();
+        String fim = ctx.exp_aritmetica(1).getText();
+        // estrutura for
+        saida.append(
+                "\tfor(" + variavel + " = " + inicio + "; " + variavel + " <= " + fim + "; " + variavel + "++){\n");
+        for (CmdContext cmdContext : ctx.cmd()) { // Comandos
             saida.append("\t");
             visitCmd(cmdContext);
         }
@@ -316,10 +320,26 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Comando Enquanto
+    @Override
+    public Void visitCmdEnquanto(CmdEnquantoContext ctx) {
+        // estrutura while
+        saida.append("\twhile(");
+        visitExpressao(ctx.expressao());
+        saida.append("){\n");
+        for (CmdContext cmdContext : ctx.cmd()) { // comandos
+            saida.append("\t");
+            visitCmd(cmdContext);
+        }
+        saida.append("\t}\n");
+        return null;
+    }
+
+    // COnversão Comando Faça
     @Override
     public Void visitCmdFaca(CmdFacaContext ctx) {
         saida.append("\tdo{\n");
-        for (CmdContext cmdContext : ctx.cmd()) {
+        for (CmdContext cmdContext : ctx.cmd()) { // comandos
             saida.append("\t");
             visitCmd(cmdContext);
         }
@@ -329,12 +349,14 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão do Comando de Retorno
     @Override
     public Void visitCmdRetorne(CmdRetorneContext ctx) {
         saida.append("\treturn " + ctx.expressao().getText() + ";\n");
         return null;
     }
 
+    // Conversão do Comando de Chamada
     @Override
     public Void visitCmdChamada(CmdChamadaContext ctx) {
         saida.append("\t" + ctx.IDENT().getText());
@@ -345,9 +367,10 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão da Declaração Local
     @Override
     public Void visitDeclaracao_local(Declaracao_localContext ctx) {
-
+        // Variáveis, Ponteiros e Registros
         if (ctx.getStart().getText().equals("declare") || ctx.getStart().getText().equals("tipo")) {
             Boolean ponteiro = false;
             TabelaDeSimbolos tabelaAdicional = null;
@@ -366,12 +389,12 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                     break;
             }
 
-            if (tipo.startsWith("^")) {
+            if (tipo.startsWith("^")) { // ponteiro
                 tipo = tipo.substring(1, tipo.length());
                 ponteiro = true;
             }
 
-            if (tipo.startsWith("registro")) {
+            if (tipo.startsWith("registro")) { // tratamento do registro
 
                 String typeDefStruct = ctx.getStart().getText().equals("tipo") ? "typedef " : "";
                 saida.append("\t" + typeDefStruct + "struct {\n");
@@ -392,13 +415,13 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                         nomeVariavel = identificadorContext.getText();
 
                         nomeImpressao += nomeVariavel;
-                        if (tipoLaVariavel.equals(TipoLa.LITERAL)) {
+                        if (tipoLaVariavel.equals(TipoLa.LITERAL)) { // se for string, faz um vetor de char com 80 caracteres
                             nomeImpressao += "[80]";
                         }
-                        if (ponteiro == true) {
+                        if (ponteiro == true) { // se for ponteiro, acrescenta seu indicativo *
                             tipoVariavel += " *";
                         }
-                        if (nomeVariavel.contains("[")) {
+                        if (nomeVariavel.contains("[")) { // nome da variável sem []
                             nomeVariavel = nomeVariavel.substring(0, nomeVariavel.indexOf("["));
                         }
                         nomeImpressao += ",";
@@ -410,11 +433,11 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                 }
                 saida.append("\t} " + nomeDoRegistro + ";\n");
                 tabela.adicionar(nomeDoRegistro, TipoLa.REGISTRO, ponteiro, tabelaAdicional);
-            } else {
+            } else { // variáveis normais ou de dentro de um registro
 
                 TipoLa tipoLaVariavel = LaSemanticoUtils.retornaTipoLaDoIdentificador(tipo);
                 String tipoVariavel = tipoLaVariavel.getValor();
-                if (tipoLaVariavel.equals(TipoLa.REGISTRO)) {
+                if (tipoLaVariavel.equals(TipoLa.REGISTRO)) { // se é de um registro, recupera sua tabela
 
                     tabelaAdicional = tabela.existeNaTabelaPrincipal(tipo) ? tabela.recuperaRegistro(tipo) : null;
                     tipoVariavel = tipo;
@@ -427,13 +450,13 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                     nomeVariavel = identificadorContext.getText();
 
                     nomeImpressao += nomeVariavel;
-                    if (tipoLaVariavel.equals(TipoLa.LITERAL)) {
+                    if (tipoLaVariavel.equals(TipoLa.LITERAL)) { // se for string, faz um vetor de char com 80 caracteres
                         nomeImpressao += "[80]";
                     }
-                    if (ponteiro == true) {
+                    if (ponteiro == true) { // se for ponteiro, acrescenta seu indicativo *
                         tipoVariavel += " *";
                     }
-                    if (nomeVariavel.contains("[")) {
+                    if (nomeVariavel.contains("[")) { // nome da variável sem []
                         nomeVariavel = nomeVariavel.substring(0, nomeVariavel.indexOf("["));
                     }
                     nomeImpressao += ",";
@@ -443,7 +466,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                 nomeImpressao = nomeImpressao.substring(0, nomeImpressao.length() - 1);
                 saida.append("\t" + tipoVariavel + " " + nomeImpressao + ";\n");
             }
-        } else if (ctx.getText().startsWith("constante")) {
+        } else if (ctx.getText().startsWith("constante")) { // Constante
             TipoLa tipoLaConstante = LaSemanticoUtils.retornaTipoLaDoIdentificador(ctx.tipo_basico().getText());
             String nomeConstante = ctx.IDENT().getText();
             String valorConstante = ctx.valor_constante().getText();
@@ -454,6 +477,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         return null;
     }
 
+    // Conversão Declaração Global
     @Override
     public Void visitDeclaracao_global(Declaracao_globalContext ctx) {
         String nome = ctx.IDENT().getText();
@@ -461,30 +485,30 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         TipoLa tipoLaParametro = null;
         String tipoParametro = "";
         String parametros = "";
-        if (ctx.getText().startsWith("funcao")) {
+        if (ctx.getText().startsWith("funcao")) { // distinção para função com tipo de retorno
             TipoLa tipoFuncao = LaSemanticoUtils.retornaTipoLaDoIdentificador(ctx.tipo_estendido().getText());
             tabela.adicionar(nome, tipoFuncao, null, tabela);
             saida.append(tipoFuncao.getValor() + " " + nome + "(");
         }
-        if (ctx.getText().startsWith("procedimento")) {
+        if (ctx.getText().startsWith("procedimento")) { // distinção para procedimentos (void)
             saida.append("void " + nome + "(");
         }
         visitParametros(ctx.parametros());
-        for (ParametroContext parametro : ctx.parametros().parametro()) {
+        for (ParametroContext parametro : ctx.parametros().parametro()) { // Recupera os parâmetros
             nomeParametro = parametro.identificador(0).getText();
             tipoLaParametro = LaSemanticoUtils.retornaTipoLaDoIdentificador(parametro.tipo_estendido().getText());
             tipoParametro = tipoLaParametro.getValor();
-            if (tipoLaParametro.equals(TipoLa.LITERAL)) {
+            if (tipoLaParametro.equals(TipoLa.LITERAL)) { // se é string, é um vetor de char, então põe *
                 tipoParametro += " *";
             }
             parametros += tipoParametro + " " + nomeParametro + ",";
             tabela.adicionar(nomeParametro, tipoLaParametro, null, null);
         }
         saida.append(parametros.substring(0, parametros.length() - 1) + "){\n");
-        for (Declaracao_localContext declaracao_localContext : ctx.declaracao_local()) {
+        for (Declaracao_localContext declaracao_localContext : ctx.declaracao_local()) { // Recupera as declarações locais
             visitDeclaracao_local(declaracao_localContext);
         }
-        for (CmdContext cmdContext : ctx.cmd()) {
+        for (CmdContext cmdContext : ctx.cmd()) { // Recupera os comandos 
             visitCmd(cmdContext);
         }
         saida.append("}\n");

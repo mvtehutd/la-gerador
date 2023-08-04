@@ -271,6 +271,7 @@ public class LaSemanticoUtils {
         }
     }
 
+    // retorna o tipo para printf em C
     public static String retornaTipoLaDoIdentificador( TipoLa tipo) {
         // verifica se é algum dos tipos padrão
         

@@ -33,27 +33,32 @@ public class LaSemantico extends LaBaseVisitor<Void> {
         tabela = new TabelaDeSimbolos();
         return super.visitPrograma(ctx);
     }
-    
 
     @Override
     public Void visitCorpo(CorpoContext ctx) {
+        // Verifica dos comandos e se for "retorne" adiciona o erro de que nao pode ser
+        // usado dentro do corpo do programa
         for (CmdContext cmdContext : ctx.cmd()) {
-                if (cmdContext.cmdRetorne() != null) {
-                    LaSemanticoUtils.adicionarErroSemantico(cmdContext.cmdRetorne().retorne,
-                            "comando retorne nao permitido nesse escopo");
-                }
-            }   
+            if (cmdContext.cmdRetorne() != null) {
+                LaSemanticoUtils.adicionarErroSemantico(cmdContext.cmdRetorne().retorne,
+                        "comando retorne nao permitido nesse escopo");
+            }
+        }
         return super.visitCorpo(ctx);
     }
 
-
     @Override
     public Void visitParcela_unario(Parcela_unarioContext ctx) {
+        // Verifica se é uma função sendo chamada
         if (ctx.IDENT() != null) {
+            // Verifica se os parametros declarados na funcao são o mesmo tanto que os
+            // passados na chamada
             if (ctx.expressao().size() != tabela.retornaNumeroDeElementosDaSubTabela(ctx.IDENT().getText())) {
                 LaSemanticoUtils.adicionarErroSemantico(ctx.IDENT().getSymbol(),
                         "incompatibilidade de parametros na chamada de " + ctx.IDENT().getText());
             } else {
+                // se a quantidade esta correta, verifica o tipo de cada parametro com os
+                // parametros salvos na tabela de simbolos para a funcao
                 TipoLa tipoExpressao = null;
                 TipoLa tipoParametro = null;
                 Collection<EntradaTabelaDeSimbolos> parametrosDaFuncao = tabela
@@ -75,6 +80,9 @@ public class LaSemantico extends LaBaseVisitor<Void> {
 
     @Override
     public Void visitDeclaracao_global(Declaracao_globalContext ctx) {
+
+        // Adiciona na tabela de simbolos uma variavel com nome da funcao/procedimento
+        // com uma subt tabela contendo os parametros
         TipoLa tipovar = TipoLa.INVALIDO;
         Boolean tipoPonteiro = false;
         TabelaDeSimbolos tabelaDoRegistro = null;
@@ -88,7 +96,7 @@ public class LaSemantico extends LaBaseVisitor<Void> {
             // verifica se é algum dos tipos padrão
             tipovar = LaSemanticoUtils.retornaTipoLaDoIdentificador(tabela,
                     parametroContext.identificador(0).IDENT(0).getSymbol(), tipo);
-            if(tipovar.equals(TipoLa.REGISTRO)){
+            if (tipovar.equals(TipoLa.REGISTRO)) {
                 tabelaDoRegistro = tabela.recuperaRegistro(tipo);
             }
             // Se ele já existe na tabela de símbolos, então erro de já declarado, senão
@@ -101,10 +109,13 @@ public class LaSemantico extends LaBaseVisitor<Void> {
             }
         }
 
+        // Se for funcao, verifica o tipo de retorno da funcao
         if (ctx.getStart().getText().equals("funcao")) {
             tipovar = LaSemanticoUtils.retornaTipoLaDoIdentificador(tabela, ctx.IDENT().getSymbol(),
                     ctx.tipo_estendido().getText());
         } else {
+            // se for procedimento verifica se existe um "retorne" e adiciona um erro
+            // semantico caso exista
             tipovar = null;
             for (CmdContext cmdContext : ctx.cmd()) {
                 if (cmdContext.cmdRetorne() != null) {
@@ -115,6 +126,7 @@ public class LaSemantico extends LaBaseVisitor<Void> {
 
         }
 
+        // Adiciona a funcao/procedimento na tabela
         String variavel = ctx.IDENT().getText();
         insereVariavelNaTabelaSeNaoExistir(tabela, variavel, tipovar, tipoPonteiro, tabelaAdicional,
                 ctx.IDENT().getSymbol());
@@ -129,6 +141,8 @@ public class LaSemantico extends LaBaseVisitor<Void> {
         TipoContext tipoContextDaVariavel = null;
         Boolean ehConstante = false;
         TipoLa tipovar = TipoLa.INVALIDO;
+        // Verifica o tipo de declaracao local feita para inicializar as variaveis com
+        // os parametros corretos
         switch (ctx.getStart().getText()) {
             case "declare":
                 listaVariaveis = Arrays.asList(ctx.variavel());
@@ -151,11 +165,14 @@ public class LaSemantico extends LaBaseVisitor<Void> {
         Boolean registro = false;
         TabelaDeSimbolos tabelaDoRegistro = null;
         TabelaDeSimbolos tabelaAdicional = tabela;
+        // Verifica se a variavel é um registro para criar uma subtabela para as
+        // declaracoes do registro
         if (!ehConstante && tipoContextDaVariavel.registro() != null) {
             listaVariaveis = tipoContextDaVariavel.registro().variavel();
             registro = true;
             tabelaAdicional = new TabelaDeSimbolos();
         }
+        // Percorre todas as variaveis para armazenar seus valores
         for (VariavelContext variavelContext : listaVariaveis) {
 
             String tipo = variavelContext.tipo().getText();
@@ -180,6 +197,9 @@ public class LaSemantico extends LaBaseVisitor<Void> {
         }
 
         String variavel = null;
+
+        // Armazena de forma diferente dependendo se a variavel é um registro declarado
+        // como variavel ou como tipo.
         if (registro) {
             switch (ctx.getStart().getText()) {
                 case "declare":
@@ -201,6 +221,7 @@ public class LaSemantico extends LaBaseVisitor<Void> {
             }
         }
 
+        // Verifica se é constante para armazenar o valor
         if (ehConstante) {
             variavel = ctx.IDENT().getText();
             insereVariavelNaTabelaSeNaoExistir(tabela, variavel, tipovar, tipoPonteiro, null,
@@ -231,22 +252,36 @@ public class LaSemantico extends LaBaseVisitor<Void> {
         TipoLa tipoExpressao = LaSemanticoUtils.verificarTipo(tabela, ctx.expressao());
         String nomeVariavel = ctx.identificador().getText();
         String nomeVariavelModificada = ctx.identificador().getText();
+
+        // Formata o nome da variavel se ela possuir uma dimensao"[]"
         if (!ctx.identificador().dimensao().isEmpty()) {
             nomeVariavelModificada = ctx.identificador().IDENT(0).getText();
         }
+        // Confere se a variavel nao existe, se nao existe retorna antes de conferir os
+        // tipos para gerar um erro semantico.
         if (!tabela.existe(nomeVariavelModificada)) {
             return super.visitCmdAtribuicao(ctx);
         }
 
+        // Verifica se os tipos da expressao e valido
+        // Se for invalido gera um erro semantico
         if (tipoExpressao != TipoLa.INVALIDO) {
             TipoLa tipoVariavel = null;
+
+            // verifica se é um registro para alterar a forma de verificar o tipo da variavel
             if (ctx.identificador().ponto != null) {
                 tipoVariavel = tabela.verificarTipoRegistro(ctx.identificador().IDENT(0).getText(),
                         ctx.identificador().IDENT(1).getText());
             } else {
                 tipoVariavel = LaSemanticoUtils.verificarTipo(tabela, nomeVariavelModificada);
             }
+
+            // Verifica se os tipos da expressao e da variavel sao diferentes
+            // se forem diferentes gera um erro semantico
             if (LaSemanticoUtils.tiposDiferentes(tipoVariavel, tipoExpressao)) {
+
+                // verifica se é um registro para alterar a forma de verificar se a variavel é um ponteiro
+                // Se for ponteiro formata a exibicao do nome da variavel
                 if (ctx.identificador().ponto != null) {
                     if (tabela.verificarPonteiroRegistro(ctx.identificador().IDENT(0).getText(),
                             ctx.identificador().IDENT(1).getText())) {
@@ -265,6 +300,16 @@ public class LaSemantico extends LaBaseVisitor<Void> {
         return super.visitCmdAtribuicao(ctx);
     }
 
+    /**
+     * Insere a variavel na tabela de simbolos se ela nao existir, caso ela exista gera um erro semantico.
+     * 
+     * @param tabelaParaInserir tabela que vai ser inserida a variavel
+     * @param variavelName nome da variavel que vai ser armazenada
+     * @param tipoVariavel TipoLa da variavel
+     * @param ehPonteiro sinalizacao se a variavel é ou nao um ponteiro
+     * @param tabelaAdicional subtabela com as variaveis pertencentes a variavel pai
+     * @param token token que vai ser usado para identificar a linha quando gerar um erro semantico
+     */
     private void insereVariavelNaTabelaSeNaoExistir(TabelaDeSimbolos tabelaParaInserir, String variavelName,
             TipoLa tipoVariavel, Boolean ehPonteiro, TabelaDeSimbolos tabelaAdicional, Token token) {
 
