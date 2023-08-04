@@ -141,6 +141,7 @@ public class TabelaDeSimbolos {
     }
 
     public TipoLa verificarTipoRegistro(String nome, String nomeVariavel) {
+        
         if(tabela.get(nome) != null){
             return tabela.get(nome).registro.verificar(nomeVariavel);
         };

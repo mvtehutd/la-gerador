@@ -1,5 +1,6 @@
 package br.ufscar.dc.compiladores.la.gerador;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import br.ufscar.dc.compiladores.la.gerador.TabelaDeSimbolos.TipoLa;
@@ -31,6 +32,7 @@ import br.ufscar.dc.compiladores.parser.LaParser.ParametroContext;
 import br.ufscar.dc.compiladores.parser.LaParser.Parcela_logicaContext;
 import br.ufscar.dc.compiladores.parser.LaParser.SelecaoContext;
 import br.ufscar.dc.compiladores.parser.LaParser.Termo_logicoContext;
+import br.ufscar.dc.compiladores.parser.LaParser.VariavelContext;
 
 public class LaGeradorC extends LaBaseVisitor<Void> {
 
@@ -104,18 +106,18 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         String variaveisParaImpressao = "";
         for (ExpressaoContext expressaoContext : ctx.expressao()) {
             nomeVariavel = expressaoContext.getText();
-            System.out.println("nomeVariavel: " + nomeVariavel);
+
             if (nomeVariavel.startsWith("\"")) {
                 stringParaImpressao += nomeVariavel.substring(1, nomeVariavel.length() - 1);
             } else {
-                System.out.println("nome: " + nomeVariavel);
+
                 TipoLa tipoLaExpressao = LaSemanticoUtils.verificarTipo(tabela, expressaoContext);
-                System.out.println("TipoLa = " + tipoLaExpressao);
+
                 String tipoIdentificador = LaSemanticoUtils
                         .retornaTipoLaDoIdentificador(tipoLaExpressao);
-                System.out.println("tipo " + tipoIdentificador);
+
                 stringParaImpressao += tipoIdentificador;
-                System.out.println("STRING: " + stringParaImpressao);
+
                 variaveisParaImpressao += ", " + nomeVariavel;
             }
         }
@@ -142,9 +144,12 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         if (ctx.getText().startsWith("^")) {
             nomeVariavelAtribuicao = "*" + nomeVariavelAtribuicao;
         }
-        System.out.println(nomeVariavelAtribuicao);
-        System.out.println(expressaoAtribuida);
-        saida.append("\t" + nomeVariavelAtribuicao + " = " + expressaoAtribuida + ";\n");
+
+        if (LaSemanticoUtils.verificarTipo(tabela, ctx.expressao()).equals(TipoLa.LITERAL)) {
+            saida.append("\tstrcpy(" + nomeVariavelAtribuicao + ", " + expressaoAtribuida + ");\n");
+        } else {
+            saida.append("\t" + nomeVariavelAtribuicao + " = " + expressaoAtribuida + ";\n");
+        }
         return null;
     }
 
@@ -213,7 +218,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
     @Override
     public Void visitExp_relacional(Exp_relacionalContext ctx) {
         Op_relacionalContext operadorRelacional = ctx.op_relacional();
-        System.out.println(ctx.getText());
+
         if (operadorRelacional != null) {
             saida.append(ctx.exp_aritmetica(0).getText());
             if (operadorRelacional.getText().equals("<>")) {
@@ -228,11 +233,11 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
             }
         } else {
             saida.append("(");
-            if(ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_nao_unario() != null){
+            if (ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_nao_unario() != null) {
                 saida.append(ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_nao_unario().getText());
-            }else{
+            } else {
                 visitExp_relacional(ctx.exp_aritmetica(0).termo(0).fator(0).parcela(0).parcela_unario().expressao(0)
-                    .termo_logico(0).fator_logico(0).parcela_logica().exp_relacional());
+                        .termo_logico(0).fator_logico(0).parcela_logica().exp_relacional());
             }
             saida.append(")");
         }
@@ -342,68 +347,85 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
 
     @Override
     public Void visitDeclaracao_local(Declaracao_localContext ctx) {
-        System.out.println(ctx.getText());
-        if (ctx.variavel() != null) {
-            System.out.println("TIPO VAR " + ctx.variavel().tipo().getText());
+
+        if (ctx.getStart().getText().equals("declare") || ctx.getStart().getText().equals("tipo")) {
             Boolean ponteiro = false;
             TabelaDeSimbolos tabelaAdicional = null;
-            String tipo = ctx.variavel().tipo().getText();
+            String tipo = "";
+            String nomeDoRegistro = "";
+            switch (ctx.getStart().getText()) {
+                case "declare":
+                    tipo = ctx.variavel().tipo().getText();
+                    nomeDoRegistro = ctx.variavel().identificador(0).getText();
+                    break;
+                case "tipo":
+                    tipo = ctx.tipo().getText();
+                    nomeDoRegistro = ctx.IDENT().getText();
+                    break;
+                default:
+                    break;
+            }
+
             if (tipo.startsWith("^")) {
                 tipo = tipo.substring(1, tipo.length());
                 ponteiro = true;
             }
+
             if (tipo.startsWith("registro")) {
-                // tabelaAdicional = new TabelaDeSimbolos();
-                // String nome = "";
-                // String nomeImpressao = "";
-                // TipoLa tipoLa = null;
-                // String struct = tipo.substring(8, tipo.length() - 12);
-                // Integer remove = 0;
-                // tipo = "registro";
-                // for (String item : struct.split(":")) {
-                //     nomeImpressao = ctx.variavel().identificador(0).getText() + "." + nome;
-                //     if (item.startsWith("inteiro")) {
-                //         tipoLa = TipoLa.INTEIRO;
-                //         remove = 7;
-                //     } else if (item.startsWith("real")) {
-                //         tipoLa = TipoLa.REAL;
-                //         remove = 4;
-                //     } else if (item.startsWith("literal")) {
-                //         tipoLa = TipoLa.LITERAL;
-                //         nomeImpressao += "[80]";
-                //         remove = 7;
-                //     } else if (item.startsWith("logico")) {
-                //         tipoLa = TipoLa.LOGICO;
-                //         remove = 6;
-                //     } else {
-                //         nome = item;
-                //         nomeImpressao = nome;
-                //         remove = 0;
-                //     }
-                //     if (remove > 0) {
-                //         saida.append("\t\t" + tipoLa.getValor() + " " + nomeImpressao + ";\n");
-                //         System.out.println("Imprimindo: " + nomeImpressao + " " + tipoLa.getValor());
-                //         String variavelnome = ctx.variavel().identificador(0).getText() + "." + nome;
-                //         System.out.println("Salvando: " + variavelnome + " " + tipoLa);
-                //         tabela.adicionar(variavelnome, tipoLa, false, null);
-                //     }
-                //     if (item.length() > remove) {
-                //         nome = item.substring(remove, item.length());
-                //         System.out.println("novonome: " + nome);
-                //     }
-                // }
+
+                String typeDefStruct = ctx.getStart().getText().equals("tipo") ? "typedef " : "";
+                saida.append("\t" + typeDefStruct + "struct {\n");
+                tabelaAdicional = new TabelaDeSimbolos();
+
+                List<VariavelContext> listaDeVariaveisDoRegistro = ctx.getStart().getText().equals("declare")
+                        ? ctx.variavel().tipo().registro().variavel()
+                        : ctx.tipo().registro().variavel();
+                ;
+                for (VariavelContext variavelContext : listaDeVariaveisDoRegistro) {
+                    tipo = variavelContext.tipo().getText();
+                    TipoLa tipoLaVariavel = LaSemanticoUtils.retornaTipoLaDoIdentificador(tipo);
+                    String tipoVariavel = tipoLaVariavel.getValor();
+                    String nomeVariavel = "";
+                    String nomeImpressao = "";
+                    List<IdentificadorContext> listaDeIdentificadores = variavelContext.identificador();
+                    for (IdentificadorContext identificadorContext : listaDeIdentificadores) {
+                        nomeVariavel = identificadorContext.getText();
+
+                        nomeImpressao += nomeVariavel;
+                        if (tipoLaVariavel.equals(TipoLa.LITERAL)) {
+                            nomeImpressao += "[80]";
+                        }
+                        if (ponteiro == true) {
+                            tipoVariavel += " *";
+                        }
+                        if (nomeVariavel.contains("[")) {
+                            nomeVariavel = nomeVariavel.substring(0, nomeVariavel.indexOf("["));
+                        }
+                        nomeImpressao += ",";
+
+                        tabelaAdicional.adicionar(nomeVariavel, tipoLaVariavel, ponteiro, null);
+                    }
+                    nomeImpressao = nomeImpressao.substring(0, nomeImpressao.length() - 1);
+                    saida.append("\t\t" + tipoVariavel + " " + nomeImpressao + ";\n");
+                }
+                saida.append("\t} " + nomeDoRegistro + ";\n");
+                tabela.adicionar(nomeDoRegistro, TipoLa.REGISTRO, ponteiro, tabelaAdicional);
             } else {
-                System.out.println("TIPO " + tipo);
+
                 TipoLa tipoLaVariavel = LaSemanticoUtils.retornaTipoLaDoIdentificador(tipo);
                 String tipoVariavel = tipoLaVariavel.getValor();
+                if (tipoLaVariavel.equals(TipoLa.REGISTRO)) {
+
+                    tabelaAdicional = tabela.existeNaTabelaPrincipal(tipo) ? tabela.recuperaRegistro(tipo) : null;
+                    tipoVariavel = tipo;
+                }
                 String nomeVariavel = "";
                 String nomeImpressao = "";
 
                 List<IdentificadorContext> listaDeIdentificadores = ctx.variavel().identificador();
                 for (IdentificadorContext identificadorContext : listaDeIdentificadores) {
                     nomeVariavel = identificadorContext.getText();
-                    System.out.println("nomeVariavel " + nomeVariavel);
-                    System.out.println("nomeImpressao " + nomeImpressao);
+
                     nomeImpressao += nomeVariavel;
                     if (tipoLaVariavel.equals(TipoLa.LITERAL)) {
                         nomeImpressao += "[80]";
@@ -415,7 +437,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
                         nomeVariavel = nomeVariavel.substring(0, nomeVariavel.indexOf("["));
                     }
                     nomeImpressao += ",";
-                    System.out.println("ctx: " + ctx.variavel().tipo().getText() + "verificacao: " + tipoVariavel);
+
                     tabela.adicionar(nomeVariavel, tipoLaVariavel, ponteiro, tabelaAdicional);
                 }
                 nomeImpressao = nomeImpressao.substring(0, nomeImpressao.length() - 1);
@@ -439,12 +461,12 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
         TipoLa tipoLaParametro = null;
         String tipoParametro = "";
         String parametros = "";
-        if(ctx.getText().startsWith("funcao")){
+        if (ctx.getText().startsWith("funcao")) {
             TipoLa tipoFuncao = LaSemanticoUtils.retornaTipoLaDoIdentificador(ctx.tipo_estendido().getText());
             tabela.adicionar(nome, tipoFuncao, null, tabela);
             saida.append(tipoFuncao.getValor() + " " + nome + "(");
         }
-        if(ctx.getText().startsWith("procedimento")){
+        if (ctx.getText().startsWith("procedimento")) {
             saida.append("void " + nome + "(");
         }
         visitParametros(ctx.parametros());
@@ -452,7 +474,7 @@ public class LaGeradorC extends LaBaseVisitor<Void> {
             nomeParametro = parametro.identificador(0).getText();
             tipoLaParametro = LaSemanticoUtils.retornaTipoLaDoIdentificador(parametro.tipo_estendido().getText());
             tipoParametro = tipoLaParametro.getValor();
-            if(tipoLaParametro.equals(TipoLa.LITERAL)){
+            if (tipoLaParametro.equals(TipoLa.LITERAL)) {
                 tipoParametro += " *";
             }
             parametros += tipoParametro + " " + nomeParametro + ",";
